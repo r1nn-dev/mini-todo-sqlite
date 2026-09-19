@@ -44,9 +44,15 @@ user-configurable sorting in this feature.
 ## Prisma schema sketch
 
 For reference during implementation (not the literal file to commit as-is —
-`schema.prisma` is created as an implementation task):
+`schema.prisma` is created as an implementation task). Note: Prisma 7 no
+longer allows a `url` in the `datasource` block (see research.md #3) — the
+connection string lives in `prisma.config.ts`/`.env` instead.
 
 ```prisma
+datasource db {
+  provider = "sqlite"
+}
+
 model Todo {
   id        Int      @id @default(autoincrement())
   title     String

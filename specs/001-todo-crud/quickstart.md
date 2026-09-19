@@ -6,13 +6,34 @@ Next.js project); no external services or accounts needed.
 ## 1. Install and configure
 
 ```bash
-npm install prisma @prisma/client
+npm install --save-exact prisma@7.10.0 @prisma/client@7.10.0
+npm install @prisma/adapter-better-sqlite3
+npm install -D dotenv
 ```
+
+(Installing `prisma`/`@prisma/client` with no version pin resolves to a
+pre-release "Prisma Platform" CLI as of this writing — pin to the matched
+stable `7.10.0` release instead. See research.md decisions #2 and #3 for why
+a driver adapter and `dotenv` are both required in this version.)
 
 Create `.env` (git-ignored) at the repo root:
 
 ```
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="file:./prisma/dev.db"
+```
+
+Create `prisma.config.ts` at the repo root (Prisma 7 no longer reads a
+`url` from `schema.prisma` — see research.md decision #3):
+
+```ts
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: { path: "prisma/migrations" },
+  datasource: { url: env("DATABASE_URL") },
+});
 ```
 
 ## 2. Apply the schema
@@ -22,6 +43,7 @@ the `Todo` model), create and apply the first migration:
 
 ```bash
 npx prisma migrate dev --name init
+npx prisma generate
 ```
 
 This generates `prisma/migrations/` (reviewable SQL) and `prisma/dev.db`.

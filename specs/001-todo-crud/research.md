@@ -36,11 +36,20 @@ Principle III's "single source of truth" story clean — one client, one
 - **New `PrismaClient` per request**: Simple but leaks connections/file
   handles under hot reload; rejected.
 
+**Implementation-time correction (Prisma 7 breaking change vs. this
+project's Prisma familiarity)**: Prisma 7 removed the zero-argument
+`new PrismaClient()` form entirely — it now throws
+`PrismaClientInitializationError: ... A driver adapter is required to
+connect to your database`, even for SQLite. `lib/db.ts` must construct a
+`PrismaBetterSqlite3` adapter (from `@prisma/adapter-better-sqlite3`) with
+the `DATABASE_URL` and pass it as `new PrismaClient({ adapter })`. Verified
+directly: `new PrismaClient()` fails at runtime; `new PrismaClient({ adapter
+})` with the adapter succeeds against `prisma/dev.db`.
+
 ## 3. Database location and configuration
 
-**Decision**: `DATABASE_URL="file:./dev.db"` in a `.env` file (git-ignored),
-with `prisma/schema.prisma` reading `env("DATABASE_URL")` as its SQLite
-datasource. No external database service or server configuration is
+**Decision**: `DATABASE_URL="file:./prisma/dev.db"` in a `.env` file
+(git-ignored). No external database service or server configuration is
 involved — the file lives inside the project directory.
 
 **Rationale**: Matches the user's explicit constraint (no external service
@@ -53,6 +62,29 @@ defaults, never hard-coded absolute paths").
   constitution.
 - **In-memory SQLite**: Rejected — spec's FR-008 requires todos to persist
   across sessions, which an in-memory database would not satisfy.
+
+**Implementation-time correction**: Prisma 7 no longer accepts a
+`datasource db { url = env("DATABASE_URL") }` line in `schema.prisma` (CLI
+error `P1012`: "The datasource property `url` is no longer supported in
+schema files"). Connection config for Migrate/introspection now lives in a
+`prisma.config.ts` at the repo root instead:
+
+```ts
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: { path: "prisma/migrations" },
+  datasource: { url: env("DATABASE_URL") },
+});
+```
+
+`schema.prisma`'s datasource block is now just `provider = "sqlite"`. Also,
+a relative `file:` URL here resolves against the **repo root** (where
+`prisma.config.ts` lives), not against `schema.prisma`'s directory as in
+older Prisma versions — hence `file:./prisma/dev.db` rather than
+`file:./dev.db`, to keep the database file under `prisma/` as intended.
 
 ## 4. Todo identifier strategy
 
