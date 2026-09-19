@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateTitle } from "../../lib/validation";
+import { validatePriority, validateTitle } from "../../lib/validation";
 
 describe("validateTitle", () => {
   it("accepts a normal title", () => {
@@ -37,6 +37,43 @@ describe("validateTitle", () => {
     expect(validateTitle("  buy milk  ")).toEqual({
       ok: true,
       title: "buy milk",
+    });
+  });
+});
+
+describe("validatePriority", () => {
+  it("defaults to MEDIUM when omitted (undefined)", () => {
+    expect(validatePriority(undefined)).toEqual({
+      ok: true,
+      priority: "MEDIUM",
+    });
+  });
+
+  it.each(["LOW", "MEDIUM", "HIGH"] as const)(
+    "accepts the exact enum value %s",
+    (value) => {
+      expect(validatePriority(value)).toEqual({ ok: true, priority: value });
+    }
+  );
+
+  it("rejects a lowercase value ('low')", () => {
+    expect(validatePriority("low")).toEqual({
+      ok: false,
+      message: "Priority must be one of LOW, MEDIUM, HIGH.",
+    });
+  });
+
+  it("rejects an unknown value ('URGENT')", () => {
+    expect(validatePriority("URGENT")).toEqual({
+      ok: false,
+      message: "Priority must be one of LOW, MEDIUM, HIGH.",
+    });
+  });
+
+  it("rejects a non-string value", () => {
+    expect(validatePriority(1)).toEqual({
+      ok: false,
+      message: "Priority must be one of LOW, MEDIUM, HIGH.",
     });
   });
 });

@@ -116,13 +116,18 @@ confirming it no longer appears anywhere in the list. Delivers value on its own
   removing it from the list without affecting other todos.
 - **FR-008**: System MUST persist todos (additions, toggles, deletions) so the
   list reflects the latest state whenever the user views it again.
+- **FR-009**: System MUST allow a user to set a todo's priority to one of
+  High, Medium, or Low, defaulting to Medium when not specified at creation.
+- **FR-010**: Users MUST be able to change a todo's priority after creation,
+  independent of its title or completion status.
 
 ### Key Entities
 
 - **Todo**: A single task the user is tracking. Attributes: title (required
   text, must be non-empty), completion status (boolean, defaults to
-  incomplete/false). Each todo is independent — creating, toggling, or deleting
-  one has no effect on any other todo.
+  incomplete/false), priority (one of High, Medium, Low; defaults to Medium).
+  Each todo is independent — creating, toggling, editing the priority of, or
+  deleting one has no effect on any other todo.
 
 ## Success Criteria *(mandatory)*
 
@@ -140,6 +145,10 @@ confirming it no longer appears anywhere in the list. Delivers value on its own
   with zero blank todos ever appearing in the list.
 - **SC-006**: 100% of todos display a completion status that matches the most
   recent toggle action performed on them.
+- **SC-007**: 100% of todos created without an explicit priority are recorded
+  as Medium priority.
+- **SC-008**: Users can change a todo's priority in a single action, and the
+  change is reflected within 1 second.
 
 ## Assumptions
 
@@ -149,7 +158,11 @@ confirming it no longer appears anywhere in the list. Delivers value on its own
   immediate. (If accidental-deletion protection is desired later, that would be
   a separate enhancement.)
 - Todos are displayed in a consistent order (e.g., the order they were created),
-  with no user-configurable sorting or filtering in this feature.
+  with no user-configurable sorting or filtering in this feature — this
+  includes priority: the list is not sorted or grouped by priority, which is
+  shown only as a per-todo label.
+- Priority values are the exact strings High/Medium/Low (case-sensitive at
+  the API boundary); no case-insensitive matching or synonyms are supported.
 - A reasonable maximum title length (e.g., 200 characters) is enforced to
   prevent unreasonably large input; the exact limit is a presentation detail
   left to planning.

@@ -16,7 +16,7 @@ describe("Add-and-view todo flow (spec User Story 1)", () => {
     await prisma.todo.deleteMany();
   });
 
-  it("adds a todo to an empty list and it appears as incomplete", async () => {
+  it("adds a todo to an empty list and it appears as incomplete with MEDIUM priority", async () => {
     const before = await (await GET()).json();
     expect(before.data).toEqual([]);
 
@@ -27,7 +27,15 @@ describe("Add-and-view todo flow (spec User Story 1)", () => {
     expect(after.data[0]).toMatchObject({
       title: "우유 사기",
       completed: false,
+      priority: "MEDIUM",
     });
+  });
+
+  it("adds a todo with an explicit priority", async () => {
+    await postTasks({ title: "urgent thing", priority: "HIGH" });
+
+    const { data } = await (await GET()).json();
+    expect(data[0]).toMatchObject({ title: "urgent thing", priority: "HIGH" });
   });
 
   it("adding a second todo leaves the first unchanged", async () => {

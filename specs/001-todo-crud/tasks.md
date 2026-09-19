@@ -184,6 +184,27 @@ Task: "Contract test for POST /api/tasks in tests/contract/tasks-post.test.ts"
 
 ---
 
+## Phase 7: Priority Field (Post-MVP Feature Addition)
+
+**Goal**: Add a `priority` (High/Medium/Low, default Medium) attribute to
+Todo, settable at creation and editable afterward, per FR-009/FR-010.
+
+- [X] T031 Add `enum Priority { LOW MEDIUM HIGH }` and `priority Priority @default(MEDIUM)` to the `Todo` model in `prisma/schema.prisma` (data-model.md); verified native `enum` is supported on the SQLite provider via `prisma validate` on a scratch copy before committing to this approach
+- [X] T032 Run `npx prisma migrate dev --name add_todo_priority` and `npx prisma generate`; verify existing rows get `priority = 'MEDIUM'` via the migration's `INSERT ... SELECT` column default (no manual backfill)
+- [X] T033 [P] Re-export `Priority` from `lib/types.ts` alongside `Todo`
+- [X] T034 [P] Add `validatePriority(raw)` to `lib/validation.ts`: `undefined` → `ok, "MEDIUM"`; exactly `"LOW"|"MEDIUM"|"HIGH"` → `ok`; anything else → rejected — unit tests in `tests/unit/validation.test.ts` written first
+- [X] T035 Extend `POST /api/tasks` (`app/api/tasks/route.ts`) to accept optional `priority`, validate it, and store it — contract tests in `tests/contract/tasks-post.test.ts` (default applied, explicit value stored, invalid value rejected) written first
+- [X] T036 Extend `PATCH /api/tasks/{id}` (`app/api/tasks/[id]/route.ts`) to accept optional `completed` and/or `priority`, requiring at least one; update contracts/tasks-api.md — contract tests in `tests/contract/tasks-patch.test.ts` (priority-only update, both together, invalid priority, neither field → 400) written first
+- [X] T037 Extend `lib/api-client.ts`: `addTodo(title, priority?)`, new `updateTodoPriority(id, priority)`
+- [X] T038 Add a priority `<select>` to the add-todo form and a per-todo priority `<select>` in the list in `app/page.tsx`, wired to `addTodo`/`updateTodoPriority`
+- [X] T039 Update integration test `tests/integration/add-todo.test.ts` for the default-priority and explicit-priority flows
+- [X] T040 Update docs for consistency: spec.md (FR-009, FR-010, SC-007, SC-008, Key Entities, Assumptions), data-model.md, contracts/tasks-api.md, quickstart.md
+- [X] T041 Run `npx vitest run`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, then restart the dev server (see Notes) and manually verify POST/PATCH priority behavior end-to-end
+
+**Checkpoint**: Priority is settable and editable through the API and UI; all 39 tests pass; build is clean.
+
+---
+
 ## Notes
 
 - [P] tasks touch different files and have no unresolved dependencies between them
@@ -197,3 +218,5 @@ Task: "Contract test for POST /api/tasks in tests/contract/tasks-post.test.ts"
   2. `new PrismaClient()` with no arguments now throws (`PrismaClientInitializationError: ... A driver adapter is required`) — Prisma 7 requires an explicit driver adapter at runtime, even for SQLite. Installed `@prisma/adapter-better-sqlite3` and pass `new PrismaBetterSqlite3({ url: process.env.DATABASE_URL })` as the `adapter` option to `PrismaClient` in `lib/db.ts`.
   3. A local SQLite `file:` URL in `prisma.config.ts`/`.env` resolves relative to the **repo root** (where `prisma.config.ts` lives), not relative to `schema.prisma`'s directory as in older Prisma versions. `DATABASE_URL` was set to `file:./prisma/dev.db` (not `file:./dev.db`) to keep the database file under `prisma/` as plan.md's Project Structure intends.
 - **Test infrastructure fix (discovered during US2)**: contract/integration tests share the real `prisma/dev.db` (no separate test database — a deliberate simplicity trade-off for this mini app). Vitest's default parallel-file execution let one test file's `beforeEach` `deleteMany()` race another file's still-running assertions against the same SQLite file, intermittently failing an update with "record not found." Fixed by setting `fileParallelism: false` in `vitest.config.ts` so test files run sequentially.
+- **Dev-server-restart gotcha (discovered during Phase 7)**: `lib/db.ts` deliberately caches its `PrismaClient` singleton on `globalThis` to survive Next.js dev hot-reloads (research.md decision #2). That singleton is built from the `@prisma/client` module loaded into the process at startup — if the *underlying generated client* changes (i.e., you ran `prisma migrate`/`prisma generate` for a schema change) while the dev server is still running, the cached singleton keeps using the old client shape and throws `PrismaClientValidationError: Unknown argument <field>` even though `tsc`/tests (fresh processes) are correct. **After any `prisma migrate dev`/`prisma generate`, restart `npm run dev`** — hot-reloading route handler code is not enough.
+- **Also useful, not a bug**: Prisma 7's generated types don't live in `node_modules/@prisma/client/index.d.ts` (that file just re-exports `.prisma/client/default`) — the actual per-project generated types are in `node_modules/.prisma/client/index.d.ts`. An IDE's TS language server can show a stale "property does not exist" error right after a schema change even when `npx tsc --noEmit` is already clean; that's editor cache lag, not a real error — restarting the TS server (or waiting) resolves it.

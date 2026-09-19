@@ -100,6 +100,23 @@ curl http://localhost:3000/api/tasks
 Expected: HTTP 204 on delete; the follow-up `GET` no longer includes that
 todo, and other todos remain.
 
+**Priority (FR-009, FR-010)**
+
+```bash
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"no priority given"}'
+```
+Expected: HTTP 201 with `priority: "MEDIUM"` even though none was sent.
+
+```bash
+curl -X PATCH http://localhost:3000/api/tasks/1 \
+  -H "Content-Type: application/json" \
+  -d '{"priority":"HIGH"}'
+```
+Expected: HTTP 200, returned todo has `priority: "HIGH"` and its `completed`
+value is unchanged.
+
 **Edge case — acting on a todo that no longer exists**
 
 ```bash

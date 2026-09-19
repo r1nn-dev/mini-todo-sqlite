@@ -42,7 +42,7 @@ describe("PATCH /api/tasks/{id}", () => {
     expect(body.error).toBeDefined();
   });
 
-  it("returns 400 when completed is missing", async () => {
+  it("returns 400 when neither completed nor priority is provided", async () => {
     const todo = await prisma.todo.create({ data: { title: "task" } });
     const res = await patchTask(todo.id, {});
     expect(res.status).toBe(400);
@@ -51,6 +51,30 @@ describe("PATCH /api/tasks/{id}", () => {
   it("returns 400 when completed is not a boolean", async () => {
     const todo = await prisma.todo.create({ data: { title: "task" } });
     const res = await patchTask(todo.id, { completed: "yes" });
+    expect(res.status).toBe(400);
+  });
+
+  it("updates a todo's priority", async () => {
+    const todo = await prisma.todo.create({ data: { title: "task" } });
+    const res = await patchTask(todo.id, { priority: "HIGH" });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.priority).toBe("HIGH");
+    expect(body.data.completed).toBe(false);
+  });
+
+  it("updates completed and priority together", async () => {
+    const todo = await prisma.todo.create({ data: { title: "task" } });
+    const res = await patchTask(todo.id, { completed: true, priority: "LOW" });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.completed).toBe(true);
+    expect(body.data.priority).toBe("LOW");
+  });
+
+  it("returns 400 for an invalid priority", async () => {
+    const todo = await prisma.todo.create({ data: { title: "task" } });
+    const res = await patchTask(todo.id, { priority: "URGENT" });
     expect(res.status).toBe(400);
   });
 });

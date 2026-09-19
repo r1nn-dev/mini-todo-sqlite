@@ -1,4 +1,4 @@
-import type { ApiError, ApiSuccess, Todo } from "@/lib/types";
+import type { ApiError, ApiSuccess, Priority, Todo } from "@/lib/types";
 
 async function parseJsonResponse<T>(res: Response): Promise<T> {
   const body = (await res.json()) as ApiSuccess<T> | ApiError;
@@ -15,11 +15,14 @@ export async function listTodos(): Promise<Todo[]> {
   return parseJsonResponse<Todo[]>(res);
 }
 
-export async function addTodo(title: string): Promise<Todo> {
+export async function addTodo(
+  title: string,
+  priority?: Priority
+): Promise<Todo> {
   const res = await fetch("/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, priority }),
   });
   return parseJsonResponse<Todo>(res);
 }
@@ -32,6 +35,18 @@ export async function toggleTodo(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ completed }),
+  });
+  return parseJsonResponse<Todo>(res);
+}
+
+export async function updateTodoPriority(
+  id: number,
+  priority: Priority
+): Promise<Todo> {
+  const res = await fetch(`/api/tasks/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ priority }),
   });
   return parseJsonResponse<Todo>(res);
 }

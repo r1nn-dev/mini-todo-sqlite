@@ -1,12 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addTodo, deleteTodo, listTodos, toggleTodo } from "@/lib/api-client";
-import type { Todo } from "@/lib/types";
+import {
+  addTodo,
+  deleteTodo,
+  listTodos,
+  toggleTodo,
+  updateTodoPriority,
+} from "@/lib/api-client";
+import type { Priority, Todo } from "@/lib/types";
+
+const PRIORITY_OPTIONS: readonly Priority[] = ["HIGH", "MEDIUM", "LOW"];
+const PRIORITY_LABELS: Record<Priority, string> = {
+  HIGH: "높음",
+  MEDIUM: "보통",
+  LOW: "낮음",
+};
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState("");
+  const [priority, setPriority] = useState<Priority>("MEDIUM");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,9 +35,10 @@ export default function Home() {
     e.preventDefault();
     setError(null);
     try {
-      const todo = await addTodo(title);
+      const todo = await addTodo(title, priority);
       setTodos((prev) => [...prev, todo]);
       setTitle("");
+      setPriority("MEDIUM");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add todo.");
     }
@@ -33,6 +48,16 @@ export default function Home() {
     setError(null);
     try {
       const updated = await toggleTodo(id, completed);
+      setTodos((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update todo.");
+    }
+  }
+
+  async function handlePriorityChange(id: number, newPriority: Priority) {
+    setError(null);
+    try {
+      const updated = await updateTodoPriority(id, newPriority);
       setTodos((prev) => prev.map((t) => (t.id === id ? updated : t)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update todo.");
@@ -64,6 +89,18 @@ export default function Home() {
             placeholder="할 일을 입력하세요"
             className="flex-1 rounded border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as Priority)}
+            aria-label="중요도"
+            className="rounded border border-zinc-300 bg-white px-2 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          >
+            {PRIORITY_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {PRIORITY_LABELS[option]}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             className="rounded bg-black px-4 py-2 text-white dark:bg-white dark:text-black"
@@ -99,6 +136,20 @@ export default function Home() {
                 >
                   {todo.title}
                 </span>
+                <select
+                  value={todo.priority}
+                  onChange={(e) =>
+                    handlePriorityChange(todo.id, e.target.value as Priority)
+                  }
+                  aria-label={`${todo.title} 중요도`}
+                  className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                >
+                  {PRIORITY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {PRIORITY_LABELS[option]}
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   onClick={() => handleDelete(todo.id)}

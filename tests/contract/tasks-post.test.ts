@@ -16,12 +16,28 @@ describe("POST /api/tasks", () => {
     await prisma.todo.deleteMany();
   });
 
-  it("creates a todo with a valid title, defaulting completed to false", async () => {
+  it("creates a todo with a valid title, defaulting completed to false and priority to MEDIUM", async () => {
     const res = await postTasks({ title: "buy milk" });
     expect(res.status).toBe(201);
     const body = await res.json();
-    expect(body.data).toMatchObject({ title: "buy milk", completed: false });
+    expect(body.data).toMatchObject({
+      title: "buy milk",
+      completed: false,
+      priority: "MEDIUM",
+    });
     expect(typeof body.data.id).toBe("number");
+  });
+
+  it("creates a todo with an explicit priority", async () => {
+    const res = await postTasks({ title: "buy milk", priority: "HIGH" });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.data.priority).toBe("HIGH");
+  });
+
+  it("rejects an invalid priority", async () => {
+    const res = await postTasks({ title: "buy milk", priority: "URGENT" });
+    expect(res.status).toBe(400);
   });
 
   it("rejects a missing title", async () => {
